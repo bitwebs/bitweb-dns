@@ -1,25 +1,25 @@
 {
-  "name": "dat-dns",
-  "version": "4.1.3",
-  "description": "Issue DNS lookups for Dat archives using HTTPS requests to the target host.",
+  "name": "@web4/bitweb-dns",
+  "version": "1.0.0",
+  "description": "Issue DNS lookups for BIT archives using HTTPS requests to the target host.",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/datprotocol/dat-dns.git"
+    "url": "git+https://github.com/bitwebs/bit-dns.git"
   },
   "keywords": [
-    "dat",
+    "bit",
     "dns"
   ],
   "author": "Paul Frazee <pfrazee@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/datprotocol/dat-dns/issues"
+    "url": "https://github.com/bitwebs/bit-dns/issues"
   },
-  "homepage": "https://github.com/datprotocol/dat-dns#readme",
+  "homepage": "https://github.com/bitwebs/bit-dns#readme",
   "dependencies": {
     "call-me-maybe": "^1.0.1",
     "concat-stream": "^2.0.0",

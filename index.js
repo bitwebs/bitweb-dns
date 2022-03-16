@@ -1,4 +1,4 @@
-const debug = require('debug')('dat')
+const debug = require('debug')('bit')
 const url = require('url')
 const https = require('https')
 const Emitter = require('events')
@@ -7,16 +7,16 @@ const memoryCache = require('./cache')
 const callMeMaybe = require('call-me-maybe')
 const concat = require('concat-stream')
 
-const DAT_HASH_REGEX = /^[0-9a-f]{64}?$/i
-const DAT_PROTOCOL_REGEX = /^dat:\/\/([0-9a-f]{64})/i
-const DAT_RECORD_NAME = 'dat'
-const DAT_TXT_REGEX = /"?datkey=([0-9a-f]{64})"?/i
+const BIT_HASH_REGEX = /^[0-9a-f]{64}?$/i
+const BIT_PROTOCOL_REGEX = /^bit:\/\/([0-9a-f]{64})/i
+const BIT_RECORD_NAME = 'bit'
+const BIT_TXT_REGEX = /"?bitkey=([0-9a-f]{64})"?/i
 const VERSION_REGEX = /(\+[^\/]+)$/
-const DEFAULT_DAT_DNS_TTL = 3600 // 1hr
-const MAX_DAT_DNS_TTL = 3600 * 24 * 7 // 1 week
+const DEFAULT_BIT_DNS_TTL = 3600 // 1hr
+const MAX_BIT_DNS_TTL = 3600 * 24 * 7 // 1 week
 const DEFAULT_DNS_PROVIDERS = [['cloudflare-dns.com', 443, '/dns-query'], ['dns.google', 443, '/resolve']]
 
-module.exports = createDatDNS
+module.exports = createBitDNS
 
 // helper to support node6
 function _asyncToGenerator (fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step (key, arg) { try { var info = gen[key](arg); var value = info.value } catch (error) { reject(error); return } if (info.done) { resolve(value) } else { return Promise.resolve(value).then(function (value) { step('next', value) }, function (err) { step('throw', err) }) } } return step('next') }) } }
@@ -29,36 +29,36 @@ function maybe (cb, p) {
   return callMeMaybe(cb, p)
 }
 
-function createDatDNS (datDnsOpts) {
-  datDnsOpts = datDnsOpts || {}
-  if (datDnsOpts.hashRegex && !(datDnsOpts.hashRegex instanceof RegExp)) { throw new Error('opts.hashRegex must be a RegExp object') }
-  if (datDnsOpts.txtRegex && !(datDnsOpts.txtRegex instanceof RegExp)) { throw new Error('opts.txtRegex must be a RegExp object') }
-  if (datDnsOpts.protocolRegex && !(datDnsOpts.protocolRegex instanceof RegExp)) { throw new Error('opts.protocolRegex must be a RegExp object') }
-  var hashRegex = datDnsOpts.hashRegex || DAT_HASH_REGEX
-  var dnsTxtRegex = datDnsOpts.txtRegex || DAT_TXT_REGEX
-  var protocolRegex = datDnsOpts.protocolRegex || DAT_PROTOCOL_REGEX
-  var recordName = datDnsOpts.recordName || DAT_RECORD_NAME
-  var pCache = datDnsOpts.persistentCache
+function createBitDNS (bitDnsOpts) {
+  bitDnsOpts = bitDnsOpts || {}
+  if (bitDnsOpts.hashRegex && !(bitDnsOpts.hashRegex instanceof RegExp)) { throw new Error('opts.hashRegex must be a RegExp object') }
+  if (bitDnsOpts.txtRegex && !(bitDnsOpts.txtRegex instanceof RegExp)) { throw new Error('opts.txtRegex must be a RegExp object') }
+  if (bitDnsOpts.protocolRegex && !(bitDnsOpts.protocolRegex instanceof RegExp)) { throw new Error('opts.protocolRegex must be a RegExp object') }
+  var hashRegex = bitDnsOpts.hashRegex || BIT_HASH_REGEX
+  var dnsTxtRegex = bitDnsOpts.txtRegex || BIT_TXT_REGEX
+  var protocolRegex = bitDnsOpts.protocolRegex || BIT_PROTOCOL_REGEX
+  var recordName = bitDnsOpts.recordName || BIT_RECORD_NAME
+  var pCache = bitDnsOpts.persistentCache
   var mCache = memoryCache()
   mCache.init({
     ttl: 60,
-    interval: datDnsOpts.cacheCleanSeconds || 60,
+    interval: bitDnsOpts.cacheCleanSeconds || 60,
   });
   var dnsHost
   var dnsPort
   var dnsPath
-  if (!datDnsOpts.dnsHost || !datDnsOpts.dnsPath) {
+  if (!bitDnsOpts.dnsHost || !bitDnsOpts.dnsPath) {
     let dnsProvider = DEFAULT_DNS_PROVIDERS[Math.floor(Math.random() * DEFAULT_DNS_PROVIDERS.length)]
     dnsHost = dnsProvider[0]
     dnsPort = dnsProvider[1]
     dnsPath = dnsProvider[2]
   } else {
-    dnsHost = datDnsOpts.dnsHost
-    dnsPort = datDnsOpts.dnsPort || 443
-    dnsPath = datDnsOpts.dnsPath
+    dnsHost = bitDnsOpts.dnsHost
+    dnsPort = bitDnsOpts.dnsPort || 443
+    dnsPath = bitDnsOpts.dnsPath
   }
 
-  var datDns = new Emitter()
+  var bitDns = new Emitter()
 
   function resolveName (name, opts, cb) {
     if (typeof opts === 'function') {
@@ -68,7 +68,7 @@ function createDatDNS (datDnsOpts) {
     var ignoreCache = opts && opts.ignoreCache
     var ignoreCachedMiss = opts && opts.ignoreCachedMiss
     var noDnsOverHttps = opts && opts.noDnsOverHttps
-    var noWellknownDat = opts && opts.noWellknownDat
+    var noWellknowBit = opts && opts.noWellknowBit
     return maybe(cb, _asyncToGenerator(function * () {
       // parse the name as needed
       var nameParsed = url.parse(name)
@@ -99,11 +99,11 @@ function createDatDNS (datDnsOpts) {
         if (!noDnsOverHttps) {
           try {
             // do a DNS-over-HTTPS lookup
-            res = yield fetchDnsOverHttpsRecord(datDns, name, { host: dnsHost, port: dnsPort, path: dnsPath })
+            res = yield fetchDnsOverHttpsRecord(bitDns, name, { host: dnsHost, port: dnsPort, path: dnsPath })
 
             // parse the record
-            res = parseDnsOverHttpsRecord(datDns, name, res.body, dnsTxtRegex)
-            datDns.emit('resolved', {
+            res = parseDnsOverHttpsRecord(bitDns, name, res.body, dnsTxtRegex)
+            bitDns.emit('resolved', {
               method: 'dns-over-https',
               name,
               key: res.key
@@ -115,12 +115,12 @@ function createDatDNS (datDnsOpts) {
           }
         }
 
-        if (!res && !noWellknownDat) {
+        if (!res && !noWellknowBit) {
           // do a .well-known/`${recordName}` lookup
           res = yield fetchWellKnownRecord(name, recordName)
           if (res.statusCode === 0 || res.statusCode === 404) {
             debug('.well-known/' + recordName + ' lookup failed for name:', name, res.statusCode, res.err)
-            datDns.emit('failed', {
+            bitDns.emit('failed', {
               method: 'well-known',
               name,
               err: 'HTTP code ' + res.statusCode + ' ' + res.err
@@ -129,7 +129,7 @@ function createDatDNS (datDnsOpts) {
             throw new Error('DNS record not found')
           } else if (res.statusCode !== 200) {
             debug('.well-known/' + recordName + ' lookup failed for name:', name, res.statusCode)
-            datDns.emit('failed', {
+            bitDns.emit('failed', {
               method: 'well-known',
               name,
               err: 'HTTP code ' + res.statusCode
@@ -138,8 +138,8 @@ function createDatDNS (datDnsOpts) {
           }
 
           // parse the record
-          res = parseWellknownDatRecord(datDns, name, res.body, protocolRegex, recordName)
-          datDns.emit('resolved', {
+          res = parseWellknowBitRecord(bitDns, name, res.body, protocolRegex, recordName)
+          bitDns.emit('resolved', {
             method: 'well-known',
             name,
             key: res.key
@@ -167,24 +167,24 @@ function createDatDNS (datDnsOpts) {
   }
 
   function flushCache () {
-    datDns.emit('cache-flushed')
+    bitDns.emit('cache-flushed')
     mCache.flush()
   }
 
-  datDns.resolveName = resolveName
-  datDns.listCache = listCache
-  datDns.flushCache = flushCache
-  return datDns
+  bitDns.resolveName = resolveName
+  bitDns.listCache = listCache
+  bitDns.flushCache = flushCache
+  return bitDns
 }
 
-createDatDNS.DEFAULT_DNS_PROVIDERS = DEFAULT_DNS_PROVIDERS
+createBitDNS.DEFAULT_DNS_PROVIDERS = DEFAULT_DNS_PROVIDERS
 
-function fetchDnsOverHttpsRecord (datDns, name, { host, port, path }) {
+function fetchDnsOverHttpsRecord (bitDns, name, { host, port, path }) {
   return new Promise((resolve, reject) => {
     // ensure the name is a FQDN
     if (!name.includes('.')) {
       debug('dns-over-https failed', name, 'Not an a FQDN')
-      datDns.emit('failed', {
+      bitDns.emit('failed', {
         method: 'dns-over-https',
         name,
         err: 'Name is not a FQDN'
@@ -216,14 +216,14 @@ function fetchDnsOverHttpsRecord (datDns, name, { host, port, path }) {
   })
 }
 
-function parseDnsOverHttpsRecord (datDns, name, body, dnsTxtRegex) {
+function parseDnsOverHttpsRecord (bitDns, name, body, dnsTxtRegex) {
   // decode to obj
   var record
   try {
     record = JSON.parse(body)
   } catch (e) {
     debug('dns-over-https failed', name, 'did not give a valid JSON response', body)
-    datDns.emit('failed', {
+    bitDns.emit('failed', {
       method: 'dns-over-https',
       name,
       err: 'Failed to parse JSON response'
@@ -235,7 +235,7 @@ function parseDnsOverHttpsRecord (datDns, name, body, dnsTxtRegex) {
   var answers = record['Answer']
   if (!answers || !Array.isArray(answers)) {
     debug('dns-over-https failed', name, 'did not give any answers')
-    datDns.emit('failed', {
+    bitDns.emit('failed', {
       method: 'dns-over-https',
       name,
       err: 'Did not give any TXT answers'
@@ -261,7 +261,7 @@ function parseDnsOverHttpsRecord (datDns, name, body, dnsTxtRegex) {
     .sort((a, b) => a.key < b.key ? 1 : a.key > b.key ? -1 : 0)
   if (!answers[0]) {
     debug('dns-over-https failed', name, 'did not give any TXT answers')
-    datDns.emit('failed', {
+    bitDns.emit('failed', {
       method: 'dns-over-https',
       name,
       err: 'Did not give any TXT answers'
@@ -272,17 +272,17 @@ function parseDnsOverHttpsRecord (datDns, name, body, dnsTxtRegex) {
   // put together res
   var res = { key: answers[0].key, ttl: answers[0].TTL }
   if (!Number.isSafeInteger(res.ttl) || res.ttl < 0) {
-    res.ttl = DEFAULT_DAT_DNS_TTL
+    res.ttl = DEFAULT_BIT_DNS_TTL
   }
-  if (res.ttl > MAX_DAT_DNS_TTL) {
-    res.ttl = MAX_DAT_DNS_TTL
+  if (res.ttl > MAX_BIT_DNS_TTL) {
+    res.ttl = MAX_BIT_DNS_TTL
   }
   return res
 }
 
 function fetchWellKnownRecord (name, recordName) {
   return new Promise((resolve, reject) => {
-    debug('.well-known/dat lookup for name:', name)
+    debug('.well-known/bit lookup for name:', name)
     https.get({
       host: name,
       path: '/.well-known/' + recordName,
@@ -296,9 +296,9 @@ function fetchWellKnownRecord (name, recordName) {
   })
 }
 
-function parseWellknownDatRecord (datDns, name, body, protocolRegex, recordName) {
+function parseWellknowBitRecord (bitDns, name, body, protocolRegex, recordName) {
   if (!body || typeof body !== 'string') {
-    datDns.emit('failed', {
+    bitDns.emit('failed', {
       method: 'well-known',
       name,
       err: 'Empty response'
@@ -314,7 +314,7 @@ function parseWellknownDatRecord (datDns, name, body, protocolRegex, recordName)
     key = protocolRegex.exec(lines[0])[1]
   } catch (e) {
     debug('.well-known/' + recordName + ' failed', name, 'must conform to ' + protocolRegex)
-    datDns.emit('failed', {
+    bitDns.emit('failed', {
       method: 'well-known',
       name,
       err: 'Record did not conform to ' + protocolRegex
@@ -328,7 +328,7 @@ function parseWellknownDatRecord (datDns, name, body, protocolRegex, recordName)
       ttl = +(/^ttl=(\d+)$/i.exec(lines[1])[1])
     }
   } catch (e) {
-    datDns.emit('failed', {
+    bitDns.emit('failed', {
       method: 'well-known',
       name,
       err: 'Failed to parse TTL line, error: ' + e.toString()
@@ -336,10 +336,10 @@ function parseWellknownDatRecord (datDns, name, body, protocolRegex, recordName)
     debug('.well-known/' + recordName + ' failed to parse TTL for %s, line: %s, error:', name, lines[1], e)
   }
   if (!Number.isSafeInteger(ttl) || ttl < 0) {
-    ttl = DEFAULT_DAT_DNS_TTL
+    ttl = DEFAULT_BIT_DNS_TTL
   }
-  if (ttl > MAX_DAT_DNS_TTL) {
-    ttl = MAX_DAT_DNS_TTL
+  if (ttl > MAX_BIT_DNS_TTL) {
+    ttl = MAX_BIT_DNS_TTL
   }
 
   return { key, ttl }

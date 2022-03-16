@@ -1,20 +1,17 @@
-[![deprecated](http://badges.github.io/stability-badges/dist/deprecated.svg)](github.com/martinheidegger/hyper-dns) See [hyper-dns](github.com/martinheidegger/hyper-dns) for similar functionality. 
-
-More info on active projects and modules at [dat-ecosystem.org](https://dat-ecosystem.org/) <img src="https://i.imgur.com/qZWlO1y.jpg" width="30" height="30" /> 
-
+[![deprecated](http://badges.github.io/stability-badges/dist/deprecated.svg)](github.com/bitwebs/dns) See [@web4/dns](github.com/bitwebs/dns) for similar functionality. 
 ---
 
-# dat-dns
+# bitweb-dns
 
-Issue DNS lookups for Dat archives using HTTPS requests to the target host. Keeps an in-memory cache of recent lookups.
+Issue DNS lookups for BIT archives using HTTPS requests to the target host. Keeps an in-memory cache of recent lookups.
 
 ## API
 
 ```js
-var datDns = require('dat-dns')()
+var bitDns = require('@web4/bitweb-dns')()
 
 // or, if you have a custom protocol
-var datDns = require('dat-dns')({
+var bitDns = require('@web4/bitweb-dns')({
     recordName: /* name of .well-known file */
     protocolRegex: /* RegExp object for custom protocol */,
     hashRegex: /* RegExp object for custom hash i.e. */,
@@ -22,7 +19,7 @@ var datDns = require('dat-dns')({
 })
 
 // example: 
-var cabalDns = require('dat-dns')({
+var cabalDns = require('@web4/bitweb-dns')({
     recordName: 'cabal',
     hashRegex: /^[0-9a-f]{64}?$/i,
     protocolRegex: /^cabal:\/\/([0-9a-f]{64})/i,
@@ -30,36 +27,36 @@ var cabalDns = require('dat-dns')({
 })
 
 // resolve a name: pass the hostname by itself
-datDns.resolveName('foo.com', function (err, key) { ... })
-datDns.resolveName('foo.com').then(key => ...)
+bitDns.resolveName('foo.com', function (err, key) { ... })
+bitDns.resolveName('foo.com').then(key => ...)
 
 // dont use cached 'misses'
-datDns.resolveName('foo.com', {ignoreCachedMiss: true})
+bitDns.resolveName('foo.com', {ignoreCachedMiss: true})
 
 // dont use the cache at all
-datDns.resolveName('foo.com', {ignoreCache: true})
+bitDns.resolveName('foo.com', {ignoreCache: true})
 
 // dont use dns-over-https
-datDns.resolveName('foo.com', {noDnsOverHttps: true})
+bitDns.resolveName('foo.com', {noDnsOverHttps: true})
 
-// dont use .well-known/dat
-datDns.resolveName('foo.com', {noWellknownDat: true})
+// dont use .well-known/bit
+bitDns.resolveName('foo.com', {noWellknownBit: true})
 
 // list all entries in the cache
-datDns.listCache()
+bitDns.listCache()
 
 // clear the cache
-datDns.flushCache()
+bitDns.flushCache()
 
 // configure the DNS-over-HTTPS host used
-var datDns = require('dat-dns')({
+var bitDns = require('@web4/bitweb-dns')({
   dnsHost: 'dns.google.com',
   dnsPath: '/resolve'
 })
 
 // use a persistent fallback cache
 // (this is handy for persistent dns data when offline)
-var datDns = require('dat-dns')({
+var bitDns = require('@web4/bitweb-dns')({
   persistentCache: {
     read: async (name, err) => {
       // try lookup
@@ -73,25 +70,22 @@ var datDns = require('dat-dns')({
 })
 
 // emits some events, mainly useful for logging/debugging
-datDns.on('resolved', ({method, name, key}) => {...})
-datDns.on('failed', ({method, name, err}) => {...})
-datDns.on('cache-flushed', () => {...})
+bitDns.on('resolved', ({method, name, key}) => {...})
+bitDns.on('failed', ({method, name, err}) => {...})
+bitDns.on('cache-flushed', () => {...})
 ```
 
 ## Spec
-
-[In detail.](https://www.datprotocol.com/deps/0005-dns/)
-
 **Option 1 (DNS-over-HTTPS).** Create a DNS TXT record witht he following schema:
 
 ```
-datkey={key}
+bitkey={key}
 ```
 
-**Option 2 (.well-known/dat).** Place a file at `/.well-known/dat` with the following schema:
+**Option 2 (.well-known/bit).** Place a file at `/.well-known/bit` with the following schema:
 
 ```
-{dat-url}
+{bit-url}
 TTL={time in seconds}
 ```
 
